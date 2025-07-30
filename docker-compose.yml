@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: jose-postgres
+    environment:
+      POSTGRES_DB: securevault
+      POSTGRES_USER: vault_admin
+      POSTGRES_PASSWORD: strongpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: jose-redis
+    ports:
+      - "6379:6379"
+
+  app:
+    build: .
+    container_name: jose-app
+    ports:
+      - "8080:8080"
+    environment:
+      # БД
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/securevault
+      SPRING_DATASOURCE_USERNAME: vault_admin
+      SPRING_DATASOURCE_PASSWORD: strongpass
+      # Hibernate сделает авто‑создание таблиц
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+      # Redis
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+
+      # JWT
+      JWT_RSA_PUBLIC_KEY_FILE: classpath:keys/pub.pem
+      JWT_RSA_PRIVATE_KEY_FILE: classpath:keys/priv.pem
+      JWT_ACCESS_TOKEN_TTL_SECONDS: 900
+      JWT_REFRESH_TOKEN_TTL_DAYS: 7
+
+      # Swagger UI
+      SPRINGDOC_SWAGGER_UI_PATH: /api/docs
+
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  db_data:
